@@ -6,8 +6,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 #include <string.h>
+//pipe
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "Job.h"
+
+#define MAX_BUF 1024 //per la named pipe
 
 const char* program_name;
 int master(int quantum, char input[], char preempt_output[], char no_preempt_output[]);
@@ -31,10 +37,10 @@ void print_help(FILE* stream, int exit_code)
 int main(int argc, char* argv[]){  
 	int quantum;
 	int ch;
-	char input[50];
+	char input[]= "01.dat";
 	char preempt_output[50];
 	char no_preempt_output[50];
-   static struct option long_options[] =
+   /*static struct option long_options[] =
 {
     {"output_preemption", required_argument, NULL, 'p'},
     {"output_no_preemption", required_argument, NULL, 'n'},
@@ -92,11 +98,11 @@ int main(int argc, char* argv[]){
 			
     }
     
-}	
+}	*/
 	
     /****Creazione processi*****/
 
-    int child_status, child_pid;
+    /*int child_status, child_pid;
 
     child_pid = master(quantum, input, preempt_output, no_preempt_output);
 
@@ -107,12 +113,91 @@ int main(int argc, char* argv[]){
     }
     else {
         //printf("The child process exited abnormally with code %d.\n", WEXITSTATUS(child_status));
-    }
+    }*/
 
     //printf("Done with the main program.\n");
     /**fine creazione processi**/
+    
+
+	pid_t firstChild, secondChild;
+	firstChild = fork();
+	if(firstChild > 0)
+	{
+	  // In parent
+	  secondChild = fork();
+	  if(secondChild > 0)
+	  {
+			print1();
+			//printf("P");
+	
+		 
+		// In parent
+	  }
+	  else if(secondChild < 0)
+	  {
+		// Error
+	  }
+	  else
+	  {
+		  print2();
+		// In secondChild
+	  }
+	}
+	else if(firstChild < 0 )
+	{
+	  // Error
+	} 
+	else
+	{	
+		print3();
+	  // In firstChild
+	}
+
+	int status1, status2;
+	firstChild = wait(&status1);
+	secondChild = wait(&status2);
 
     return 0;
+}
+/*Ora quese funziona sono a caso, ma posso lancaire tre funzioni diverse*/
+void print1(){
+	 int fd;
+    char * myfifo = "/tmp/myfifo";
+
+    /* create the FIFO (named pipe) */
+    mkfifo(myfifo, 0666);
+    
+	//write(fd, my_struct_pointer, sizeof(*my_struct_pointer)); //questo??????
+    /* write "Hi" to the FIFO */
+    fd = open(myfifo, O_WRONLY);
+    write(fd, "Hi", sizeof("Hi"));
+    close(fd);
+
+    /* remove the FIFO */
+    unlink(myfifo);
+	
+
+	printf("P\n");
+	
+}
+void print2(){
+
+	printf("S\n");
+	
+	int fd;
+    char * myfifo = "/tmp/myfifo";
+    char buf[MAX_BUF];
+
+    /* open, read, and display the message from the FIFO */
+    fd = open(myfifo, O_RDONLY);
+    read(fd, buf, MAX_BUF);
+    printf("Received: %s\n", buf);
+    close(fd);
+
+}
+void print3(){
+	printf("F\n");
+
 }
 
 int childSpeak(){

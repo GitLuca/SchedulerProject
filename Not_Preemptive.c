@@ -28,8 +28,8 @@ pthread_mutex_t lock[4];
 /*I JOB NON VENGONO ORDINATI PER LUNGHEZZA, LA FUNZIONE NON E CORRETTA*/
 /**shortest job next**/
 void scheduler_not_preemptive(Job *origJobs, int jobCount, char no_preempt_output[]){
-	FILE *fp;
-	fp = freopen(no_preempt_output, "w+", stdout);
+	/*FILE *fp;
+	fp = freopen(no_preempt_output, "w+", stdout);*/
 
     long long clock1 = 0;
     long long clock2 = 0;
@@ -166,7 +166,7 @@ void scheduler_not_preemptive(Job *origJobs, int jobCount, char no_preempt_outpu
         pthread_mutex_unlock(&lock[1]);
     }
     
-	fclose(fp);
+	//fclose(fp);
 	
 }
 

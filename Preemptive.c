@@ -19,8 +19,8 @@ pthread_mutex_t lock1[4];
 void scheduler_preemptive(Job* jobs, int quantum, int jobCount, char preempt_output[]){
     Q = quantum;
 	
-	FILE *fp;
-	fp = freopen(preempt_output, "w+", stdout);
+	/*FILE *fp;
+	fp = freopen(preempt_output, "w+", stdout);*/
     /**inizializza il MUTEX **/
     for(int iii=0; iii<mut1; iii++){
         if(pthread_mutex_init(&lock1[iii], NULL) != 0){
@@ -142,7 +142,7 @@ void scheduler_preemptive(Job* jobs, int quantum, int jobCount, char preempt_out
 
     }
 	
-	fclose(fp);
+	//fclose(fp);
 }
 
 void* corePreem (void* parameters){
