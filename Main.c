@@ -161,42 +161,68 @@ int main(int argc, char* argv[]){
 }
 /*Ora quese funziona sono a caso, ma posso lancaire tre funzioni diverse*/
 void print1(){
-	 int fd;
+	 /*int fd;
     char * myfifo = "/tmp/myfifo";
 
-    /* create the FIFO (named pipe) */
+    // create the FIFO (named pipe) 
     mkfifo(myfifo, 0666);
-    
+    int temp[20];
+    for(int i=0; i<20; i++){
+		temp[i] = i;
+	}	
 	//write(fd, my_struct_pointer, sizeof(*my_struct_pointer)); //questo??????
-    /* write "Hi" to the FIFO */
+    // write "Hi" to the FIFO 
     fd = open(myfifo, O_WRONLY);
-    write(fd, "Hi", sizeof("Hi"));
+    //write(fd, "Hi", sizeof("Hi"));
+    write(fd, &temp, sizeof(temp));
     close(fd);
 
-    /* remove the FIFO */
-    unlink(myfifo);
+    // remove the FIFO 
+    unlink(myfifo);*/
 	
-
-	printf("P\n");
+	pid_t p = getpid();
+	printf("P: %d\n",p);
 	
 }
 void print2(){
-
-	printf("S\n");
-	
-	int fd;
+	master(10, "01.dat", "preempt", "no_preempt");
+	/*int fd;
     char * myfifo = "/tmp/myfifo";
-    char buf[MAX_BUF];
-
-    /* open, read, and display the message from the FIFO */
+    //char buf[MAX_BUF];
+	int tempPoint[20];
+    // open, read, and display the message from the FIFO 
     fd = open(myfifo, O_RDONLY);
-    read(fd, buf, MAX_BUF);
-    printf("Received: %s\n", buf);
-    close(fd);
+    //read(fd, buf, MAX_BUF);
+    
+    for(int i=0; i<20; i++){
+		read(fd, &tempPoint[i], sizeof(tempPoint));
+		 printf("Received: %d\n", tempPoint[i]);
+	}	
+   
+    close(fd);*/
 
+	pid_t p = getpid();
+	printf("S: %d\n",p);
+	
 }
 void print3(){
-	printf("F\n");
+	pid_t p = getpid();
+	int fd;
+    char * jobfifo = "/tmp/jobfifo";
+    //char buf[MAX_BUF];
+	Job tempPoint[MAX_BUF];
+    /* open, read, and display the message from the FIFO */
+    fd = open(jobfifo, O_RDONLY);
+    //read(fd, buf, MAX_BUF);
+    
+    for(int i=0; i<20; i++){
+		read(fd, &tempPoint[i], sizeof(tempPoint));
+		 printf("Received: %d\n", tempPoint[i].id);
+	}	
+   
+    close(fd);
+	printf("F: %d\n",p);
+	
 
 }
 
@@ -311,7 +337,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
                     jobs[k].arrival_time = atoi(token);
                     //all'inizio setto instrDone a 0
                     jobs[k].instrDone = 0;
-                    //printf( "Job number %d with id %d and arrival time %d\n", k, jobs[k].id, jobs[k].arrival_time);
+                    printf( "Job number %d with id %d and arrival time %d\n", k, jobs[k].id, jobs[k].arrival_time);
 
                 }else{
 
@@ -343,6 +369,23 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
             }
 
             /**ora si passano i job agli scheduler**/
+            
+            printf( "PIPE\n");
+             int fd;
+			char * jobfifo = "/tmp/jobfifo";
+
+			/* create the FIFO (named pipe) */
+			mkfifo(jobfifo, 0666);
+
+			fd = open(jobfifo, O_WRONLY);
+			write(fd, &jobs, sizeof(jobs));
+			close(fd);
+
+			/* remove the FIFO */
+			unlink(jobfifo);
+			/****************************************/
+
+
 
             for(int c = 0; c<jobCount; c++){
                 jobs[c].pState = NEW;
@@ -351,10 +394,10 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
 			for(int ii =0; ii< jobCount; ii++){
 				newJobs[ii] = jobs[ii];
 			}
-			scheduler_preemptive(jobs, quantum, jobCount, preempt_output);
+			//scheduler_preemptive(jobs, quantum, jobCount, preempt_output);
             //fprintf(stderr,"Finito preemptive\n");
             
-            scheduler_not_preemptive(newJobs, jobCount, no_preempt_output);
+            //scheduler_not_preemptive(newJobs, jobCount, no_preempt_output);
             //printf("Finito Not preemptive\n");	
             
             exit(EX_OSERR);

@@ -1,0 +1,7 @@
+La pipe funiziona, ma prima di leggerla devo essere sicuro che sisa srtata scritta? 
+	Quando vengono stampati prima i Job funziona bene, altrimenti si blocca
+	Problema della Pipe? 
+	DA CONTROLLARE
+
+makefile: 
+	è un problema dell'header precompilato?
