@@ -12,10 +12,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
+#include <sys/mman.h> //mmap
 #include "Job.h"
 
-#define MAX_BUF 1024 //per la named pipe
+#define FILE_LENGTH 0x100
 
 const char* program_name;
 int master(int quantum, char input[], char preempt_output[], char no_preempt_output[]);
@@ -23,10 +23,11 @@ int childSpeak();
 void calculateLenght(Job* job);
 void print_help(FILE* stream, int exit_code);
 
-
 void print3();
 void print2();
 void print1();
+
+char *name = "mem.txt";
 
 void print_help(FILE* stream, int exit_code)
 {
@@ -157,6 +158,7 @@ int main(int argc, char* argv[]){
 	} 
 	else
 	{	
+		//scheduler_not_preemptive( 5, "nonserve");
 		print3();
 	  // In firstChild
 	}
@@ -166,30 +168,34 @@ int main(int argc, char* argv[]){
 	secondChild = wait(&status2);*/
 	waitpid(firstChild,&status1,0);
 	waitpid(secondChild,&status2,0);
-	printf("FINE??\n");
     return 0;
 }
 /*Ora quese funziona sono a caso, ma posso lancaire tre funzioni diverse*/
 void print1(){
-	 /*int fd;
-    char * myfifo = "/tmp/myfifo";
+	
+	int fd;
+    void* file_memory;
+	
+	int num =11;
+	/* Prepare a file large enough to hold an unsigned integer. */
+    fd = open(name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    lseek(fd, FILE_LENGTH+1, SEEK_SET);
+    write(fd, "", 1);
+    lseek(fd, 0, SEEK_SET);
 
-    // create the FIFO (named pipe) 
-    mkfifo(myfifo, 0666);
-    int temp[20];
-    for(int i=0; i<20; i++){
-		temp[i] = i;
-	}	
-	//write(fd, my_struct_pointer, sizeof(*my_struct_pointer)); //questo??????
-    // write "Hi" to the FIFO 
-    fd = open(myfifo, O_WRONLY);
-    //write(fd, "Hi", sizeof("Hi"));
-    write(fd, &temp, sizeof(temp));
+	/* Create the memory mapping. */
+    file_memory = mmap(0, FILE_LENGTH, PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
 
-    // remove the FIFO 
-    unlink(myfifo);*/
-	master(10, "01.dat", "preempt", "no_preempt");
+	/* Write a random integer to memory-mapped area. */
+    sprintf((char*)file_memory, "%d\n", num);
+
+	/* Release the memory (unnecessary because the program exits). */
+    munmap(file_memory, FILE_LENGTH);
+
+   
+    
+	//master(10, "01.dat", "preempt", "no_preempt");
 	pid_t p = getpid();
 	printf("P: %d\n",p);
 
@@ -215,35 +221,32 @@ void print2(){
 	printf("S: %d\n",p);
 	exit(0);
 }
-void synch_signal (int sig)
-{
-	printf("Son dentro\n");
 
-}
 
 void print3(){
-	printf("printed from child [%d]\n", getpid());
-    signal(0, synch_signal); //measure_time is a function
-    sleep(1);
 	
-	pid_t p = getpid();
-	//int fd;
-    char * jobfifo = "/tmp/jobfifo";
-    //char buf[MAX_BUF];
-	Job tempPoint[MAX_BUF];
-    /* open, read, and display the message from the FIFO */
- 
-	
-    int fd = open(jobfifo, O_RDONLY);
+	int fd;
+    void* file_memory;
+    int integer;
+
+    fd = open(name, O_RDWR, S_IRUSR | S_IWUSR);
+
+    file_memory = mmap(0, FILE_LENGTH, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    close(fd);
+
+    sscanf(file_memory, "%d", &integer);
+
+    printf("value:%d\n", integer);
+
+    sprintf((char*)file_memory, "%d\n", 2*integer);
+
+    munmap(file_memory, FILE_LENGTH);
     
-    for(int i=0; i<20; i++){
-		read(fd, &tempPoint[i], sizeof(tempPoint));
-		 printf("Received: %d\n", tempPoint[i].id);
-	}	
-   
-    close ( fd); /* Close used end */
+	pid_t p = getpid();
+	
 	printf("F: %d\n",p);
-	exit(0);
+
 }
 
 int childSpeak(){
@@ -376,7 +379,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
                     //IO_MAX
                     token = strtok(NULL, s);
                     jobs[k].instr[h].io_max = atoi(token);
-                    //printf( "Istruction number %d with type flag %d,lenght %d and I/O max %d \n", h, jobs[k].instr[h].type_flag, jobs[k].instr[h].lenght, jobs[k].instr[h].io_max );
+                    printf( "Istruction number %d with type flag %d,lenght %d and I/O max %d \n", h, jobs[k].instr[h].type_flag, jobs[k].instr[h].lenght, jobs[k].instr[h].io_max );
                 }
                 h++;
 
@@ -391,22 +394,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
 
             /**ora si passano i job agli scheduler**/
             
-            printf( "PIPE\n");
-            //int fd;
-			char * jobfifo = "/tmp/jobfifo";
-			int fd;
-			/* create the FIFO (named pipe) */
-			mkfifo(jobfifo, 0666);
-		
-			fd = open(jobfifo, O_WRONLY);
-			 
-			write(fd, &jobs, sizeof(jobs));
-			close (fd);
-			int d = getpid();
-			printf("prima del kill %d",d);
-			kill(getppid(),0);
-			/* remove the FIFO */
-			unlink(jobfifo);
+       
 			/****************************************/
 			
             for(int c = 0; c<jobCount; c++){
@@ -422,7 +410,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
             //scheduler_not_preemptive(newJobs, jobCount, no_preempt_output);
             //printf("Finito Not preemptive\n");	
             
-            exit(EX_OSERR);
+            //exit(EX_OSERR);
             
             for (int i=0;i<jobCount; i++){
                 free(jobs[i].instr);
@@ -430,8 +418,8 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
             free(instrCount);
 
         }
-        printf("finito master\n");
 	//exit(0);
+	return 0;
  }
 
  void calculateLenght(Job* job){

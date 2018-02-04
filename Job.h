@@ -27,8 +27,8 @@ typedef struct {
 }args;
 
 void scheduler_preemptive(Job* jobs, int quantum, int jobCount, char preempt_output[]);
-void scheduler_not_preemptive(Job* jobs, int jobCount, char no_preempt_output[]);
-
+void scheduler_not_preemptive( int jobCount, char no_preempt_output[]);
+void synch_signal (int sig);
 #endif /* JOB_H*/
 
 

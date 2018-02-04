@@ -5,8 +5,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include "Job.h"
+#include <signal.h>
 
-void scheduler_not_preemptive(Job *jobs, int jobCount, char no_preempt_output[]);
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+void scheduler_not_preemptive( int jobCount, char no_preempt_output[]);
 //void sort (Job *readyJob, int size);
 int sort (const void *s1, const void *s2);
 void sort1 (Job *readyJob, int size);
@@ -27,9 +32,12 @@ int mut = 4;
 pthread_mutex_t lock[4];
 /*I JOB NON VENGONO ORDINATI PER LUNGHEZZA, LA FUNZIONE NON E CORRETTA*/
 /**shortest job next**/
-void scheduler_not_preemptive(Job *origJobs, int jobCount, char no_preempt_output[]){
+void scheduler_not_preemptive( int jobCount, char no_preempt_output[]){
 	/*FILE *fp;
 	fp = freopen(no_preempt_output, "w+", stdout);*/
+	
+	
+    
 
     long long clock1 = 0;
     long long clock2 = 0;
@@ -38,7 +46,8 @@ void scheduler_not_preemptive(Job *origJobs, int jobCount, char no_preempt_outpu
 
     Job jobs[jobCount];
     for(int ii =0; ii< jobCount; ii++){
-        jobs[ii] = origJobs[ii];
+        //jobs[ii] = origJobs[ii];
+   
     }
 
     /**inizializza il MUTEX **/
@@ -54,12 +63,12 @@ void scheduler_not_preemptive(Job *origJobs, int jobCount, char no_preempt_outpu
     for(int c = 0; c<jobCount; c++){
             jobs[c].pState = READY;
     }
-    /*for(int i1=0; i1<jobCount; i1++){
+    for(int i1=0; i1<jobCount; i1++){
         fprintf(stderr,"job numero: %d con numero istruzioni %d, pState %d, arrivalTime %d e lunghezza %d totalLeght %d\n", jobs[i1].id, jobs[i1].numbOfInstr, jobs[i1].pState, jobs[i1].arrival_time, jobs[i1].totalLeght,jobs[i1].totalLeght);
         for(int i2 = 0; i2 < jobs[i1].numbOfInstr; i2++ ){
              fprintf(stderr,"istruzione numero: %d con type_flag %d, lunghezza %d e io_max %d \n", i2, jobs[i1].instr[i2].type_flag,jobs[i1].instr[i2].lenght,jobs[i1].instr[i2].io_max);
         }
-    }*/
+    }
     //sort1(jobs, jobCount);
     //qsort(jobs, jobCount, sizeof(Job), sort);
 	

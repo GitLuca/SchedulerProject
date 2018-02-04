@@ -1,4 +1,1 @@
-Prova Sigsuspend per far aspettare il segnale, per ora va in stallo
-
-makefile: 
-	è un problema dell'header precompilato?
+Errore nel passare i job, le istruzioni non vengono passate giuste
