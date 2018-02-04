@@ -1,11 +1,13 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sysexits.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 //pipe
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -21,6 +23,11 @@ int childSpeak();
 void calculateLenght(Job* job);
 void print_help(FILE* stream, int exit_code);
 
+
+void print3();
+void print2();
+void print1();
+
 void print_help(FILE* stream, int exit_code)
 {
     fprintf(stream, "Usage: %s options [inputfile ...]\n", program_name);
@@ -35,6 +42,7 @@ void print_help(FILE* stream, int exit_code)
 
 
 int main(int argc, char* argv[]){  
+	
 	int quantum;
 	int ch;
 	char input[]= "01.dat";
@@ -48,7 +56,7 @@ int main(int argc, char* argv[]){
     {"quantum", required_argument, NULL, 'q'},
     {NULL, 0, NULL, 0}
 };
-
+	
 	int k=2;
 	while ((ch = getopt_long(argc, argv, "o:,i:,q:", long_options, NULL)) != -1){
     // check to see if a single character or long option came through
@@ -152,11 +160,13 @@ int main(int argc, char* argv[]){
 		print3();
 	  // In firstChild
 	}
-
+	
 	int status1, status2;
-	firstChild = wait(&status1);
-	secondChild = wait(&status2);
-
+	/*firstChild = wait(&status1);
+	secondChild = wait(&status2);*/
+	waitpid(firstChild,&status1,0);
+	waitpid(secondChild,&status2,0);
+	printf("FINE??\n");
     return 0;
 }
 /*Ora quese funziona sono a caso, ma posso lancaire tre funzioni diverse*/
@@ -179,13 +189,13 @@ void print1(){
 
     // remove the FIFO 
     unlink(myfifo);*/
-	
+	master(10, "01.dat", "preempt", "no_preempt");
 	pid_t p = getpid();
 	printf("P: %d\n",p);
-	
+
 }
 void print2(){
-	master(10, "01.dat", "preempt", "no_preempt");
+	
 	/*int fd;
     char * myfifo = "/tmp/myfifo";
     //char buf[MAX_BUF];
@@ -203,27 +213,37 @@ void print2(){
 
 	pid_t p = getpid();
 	printf("S: %d\n",p);
-	
+	exit(0);
 }
+void synch_signal (int sig)
+{
+	printf("Son dentro\n");
+
+}
+
 void print3(){
+	printf("printed from child [%d]\n", getpid());
+    signal(0, synch_signal); //measure_time is a function
+    sleep(1);
+	
 	pid_t p = getpid();
-	int fd;
+	//int fd;
     char * jobfifo = "/tmp/jobfifo";
     //char buf[MAX_BUF];
 	Job tempPoint[MAX_BUF];
     /* open, read, and display the message from the FIFO */
-    fd = open(jobfifo, O_RDONLY);
-    //read(fd, buf, MAX_BUF);
+ 
+	
+    int fd = open(jobfifo, O_RDONLY);
     
     for(int i=0; i<20; i++){
 		read(fd, &tempPoint[i], sizeof(tempPoint));
 		 printf("Received: %d\n", tempPoint[i].id);
 	}	
    
-    close(fd);
+    close ( fd); /* Close used end */
 	printf("F: %d\n",p);
-	
-
+	exit(0);
 }
 
 int childSpeak(){
@@ -282,6 +302,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
                 }
                 counter++;
             }
+            fclose(infile);
             /**inzio instrCount**/
 
             instrCount = malloc(jobCount*sizeof(int));
@@ -371,29 +392,30 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
             /**ora si passano i job agli scheduler**/
             
             printf( "PIPE\n");
-             int fd;
+            //int fd;
 			char * jobfifo = "/tmp/jobfifo";
-
+			int fd;
 			/* create the FIFO (named pipe) */
 			mkfifo(jobfifo, 0666);
-
+		
 			fd = open(jobfifo, O_WRONLY);
+			 
 			write(fd, &jobs, sizeof(jobs));
-			close(fd);
-
+			close (fd);
+			int d = getpid();
+			printf("prima del kill %d",d);
+			kill(getppid(),0);
 			/* remove the FIFO */
 			unlink(jobfifo);
 			/****************************************/
-
-
-
+			
             for(int c = 0; c<jobCount; c++){
                 jobs[c].pState = NEW;
             }
-			Job newJobs[jobCount];
+			/*Job newJobs[jobCount];
 			for(int ii =0; ii< jobCount; ii++){
 				newJobs[ii] = jobs[ii];
-			}
+			}*/
 			//scheduler_preemptive(jobs, quantum, jobCount, preempt_output);
             //fprintf(stderr,"Finito preemptive\n");
             
@@ -401,14 +423,15 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
             //printf("Finito Not preemptive\n");	
             
             exit(EX_OSERR);
-            fclose(infile);
+            
             for (int i=0;i<jobCount; i++){
                 free(jobs[i].instr);
             }
             free(instrCount);
 
         }
-
+        printf("finito master\n");
+	//exit(0);
  }
 
  void calculateLenght(Job* job){
