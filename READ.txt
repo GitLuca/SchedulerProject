@@ -1,1 +1,1 @@
-Errore nel passare i job, le istruzioni non vengono passate giuste
+Devo fare una pipe per passare la dimensione del file??
