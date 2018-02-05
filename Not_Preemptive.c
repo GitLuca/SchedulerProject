@@ -10,6 +10,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/mman.h> //mmap
+
+
 
 void scheduler_not_preemptive( int jobCount, char no_preempt_output[]);
 //void sort (Job *readyJob, int size);
@@ -33,22 +36,57 @@ pthread_mutex_t lock[4];
 /*I JOB NON VENGONO ORDINATI PER LUNGHEZZA, LA FUNZIONE NON E CORRETTA*/
 /**shortest job next**/
 void scheduler_not_preemptive( int jobCount, char no_preempt_output[]){
-	/*FILE *fp;
+	Job jobs[jobCount];
+	/*FILE *fp;	 
 	fp = freopen(no_preempt_output, "w+", stdout);*/
 	
 	
-    
+	int FILESIZE = 1024;
+	sleep(1);
+    int fd;
+    Job *map;  /* mmapped array of int's */
 
+    fd = open("jobMem.txt", O_RDONLY);
+    if (fd == -1) {
+	perror("Error opening file for reading");
+	exit(EXIT_FAILURE);
+    }
+
+    map = mmap(0, FILESIZE, PROT_READ, MAP_SHARED, fd, 0);
+    if (map == MAP_FAILED) {
+	close(fd);
+	perror("Error mmapping the file (reading)");
+	exit(EXIT_FAILURE);
+    }
+    
+    /* Read the file int-by-int from the mmap
+     */
+    for (int i = 0; i <jobCount; i++) {
+		
+		jobs[i] = map[i];
+		for(int j=0; j<jobs[i].numbOfInstr; j++){
+			jobs[i].instr[j] = map[i].instr[j]; 
+		}
+		//printf("%d: %d\n", i, jobs[i].instr[0].type_flag);
+    }
+
+    if (munmap(map, FILESIZE) == -1) {
+	perror("Error un-mmapping the file");
+    }
+    close(fd);
+
+	
+    
     long long clock1 = 0;
     long long clock2 = 0;
     pthread_t thread[2];
     args thread_args[2];
 
-    Job jobs[jobCount];
-    for(int ii =0; ii< jobCount; ii++){
+    
+    /*for(int ii =0; ii< jobCount; ii++){
         //jobs[ii] = origJobs[ii];
    
-    }
+    }*/
 
     /**inizializza il MUTEX **/
     for(int iii=0; iii<mut; iii++){
@@ -64,9 +102,9 @@ void scheduler_not_preemptive( int jobCount, char no_preempt_output[]){
             jobs[c].pState = READY;
     }
     for(int i1=0; i1<jobCount; i1++){
-        fprintf(stderr,"job numero: %d con numero istruzioni %d, pState %d, arrivalTime %d e lunghezza %d totalLeght %d\n", jobs[i1].id, jobs[i1].numbOfInstr, jobs[i1].pState, jobs[i1].arrival_time, jobs[i1].totalLeght,jobs[i1].totalLeght);
+        printf("job numero: %d con numero istruzioni %d, pState %d, arrivalTime %d e totalLeght %d\n", jobs[i1].id, jobs[i1].numbOfInstr, jobs[i1].pState, jobs[i1].arrival_time, jobs[i1].totalLeght);
         for(int i2 = 0; i2 < jobs[i1].numbOfInstr; i2++ ){
-             fprintf(stderr,"istruzione numero: %d con type_flag %d, lunghezza %d e io_max %d \n", i2, jobs[i1].instr[i2].type_flag,jobs[i1].instr[i2].lenght,jobs[i1].instr[i2].io_max);
+             printf("istruzione numero: %d con type_flag %d, lunghezza %d e io_max %d \n", i2, jobs[i1].instr[i2].type_flag,jobs[i1].instr[i2].lenght,jobs[i1].instr[i2].io_max);
         }
     }
     //sort1(jobs, jobCount);
@@ -228,6 +266,8 @@ void* core (void* parameters){
 
         }else{
             fprintf(stderr, "Errore nella lettura del type_flag");
+            //perror("Error calling lseek() to 'stretch' the file");
+			exit(EXIT_FAILURE);
             (*th_args).job.pState = BLOCKED;
         }
     }

@@ -149,7 +149,7 @@ int main(int argc, char* argv[]){
 	  }
 	  else
 	  {
-		  print2();
+		  //print2();
 		// In secondChild
 	  }
 	}
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]){
 	} 
 	else
 	{	
-		//scheduler_not_preemptive( 5, "nonserve");
+		scheduler_not_preemptive( 6, "nonserve");
 		//print3();
 	  // In firstChild
 	}
@@ -204,9 +204,8 @@ void print1(){
 void print2(){
 	/**Nuova versione**/
 	sleep(3);
-	int i;
     int fd;
-    int *map;  /* mmapped array of int's */
+    Job *map;  /* mmapped array of int's */
 
     fd = open("jobMem.txt", O_RDONLY);
     if (fd == -1) {
@@ -223,8 +222,8 @@ void print2(){
     
     /* Read the file int-by-int from the mmap
      */
-    for (i = 1; i <=100; ++i) {
-	printf("%d: %d\n", i, map[i]);
+    for (int i = 0; i <=5; i++) {
+	printf("%d: %d\n", i, map[i].arrival_time);
     }
 
     if (munmap(map, FILESIZE) == -1) {
@@ -241,7 +240,7 @@ void print2(){
 
 void print3(){
 	
-	int fd;
+	/*int fd;
     void* file_memory;
     int integer;
 
@@ -257,7 +256,7 @@ void print3(){
 
     sprintf((char*)file_memory, "%d\n", 2*integer);
 
-    munmap(file_memory, FILE_LENGTH);
+    munmap(file_memory, FILE_LENGTH);*/
     
 	pid_t p = getpid();
 	
@@ -377,7 +376,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
                     jobs[k].arrival_time = atoi(token);
                     //all'inizio setto instrDone a 0
                     jobs[k].instrDone = 0;
-                    //printf( "Job number %d with id %d and arrival time %d\n", k, jobs[k].id, jobs[k].arrival_time);
+                    printf( "Job number %d with id %d and arrival time %d\n", k, jobs[k].id, jobs[k].arrival_time);
 
                 }else{
 
@@ -395,7 +394,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
                     //IO_MAX
                     token = strtok(NULL, s);
                     jobs[k].instr[h].io_max = atoi(token);
-                    //printf( "Istruction number %d with type flag %d,lenght %d and I/O max %d \n", h, jobs[k].instr[h].type_flag, jobs[k].instr[h].lenght, jobs[k].instr[h].io_max );
+                    printf( "Istruction number %d with type flag %d,lenght %d and I/O max %d \n", h, jobs[k].instr[h].type_flag, jobs[k].instr[h].lenght, jobs[k].instr[h].io_max );
                 }
                 h++;
 
@@ -407,14 +406,16 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
                 }
 
             }
-
+            //printf("JOBCOUNT:%d", jobCount);
+			for(int c = 0; c<jobCount; c++){
+                jobs[c].pState = NEW;
+            }
             /**ora si passano i job agli scheduler**/
-            printf("ora sto scrivendo\n");
-			int i;
+            //printf("ora sto scrivendo\n");
 			int fd;
 			int result;
-			int *map;  /* mmapped array of int's */
-
+			Job *map;  /* mmapped array of int's */
+			
 			/* Open a file for writing.
 			 *  - Creating the file if it doesn't exist.
 			 *  - Truncating it to 0 size if it already exists. (not really needed)
@@ -426,10 +427,13 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
 			perror("Error opening file for writing");
 			exit(EXIT_FAILURE);
 			}
-
+			
 			/* Stretch the file size to the size of the (mmapped) array of ints
 			 */
-			int FILESIZE = 100* sizeof(int);
+			//int FILESIZE = 100* sizeof(int);
+			int dimm = sizeof(jobs);
+			
+			FILESIZE = dimm;
 			result = lseek(fd, FILESIZE-1, SEEK_SET);
 			if (result == -1) {
 			close(fd);
@@ -456,7 +460,8 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
 
 			/* Now the file is ready to be mmapped.
 			 */
-			map = mmap(0, FILESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+			map = mmap(0, FILESIZE, PROT_WRITE, MAP_SHARED, fd, 0);
+			
 			if (map == MAP_FAILED) {
 			close(fd);
 			perror("Error mmapping the file (writing)");
@@ -465,8 +470,12 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
 			
 			/* Now write int's to the file as if it were memory (an array of ints).
 			 */
-			for (i = 1; i <=100; ++i) {
-			map[i] = 2 * i; 
+			for (int i = 0; i <jobCount; i++) {
+				map[i] = jobs[i]; 
+				for(int j=0; j<jobs[i].numbOfInstr; j++){
+					map[i].instr[j] = jobs[i].instr[j]; 
+				}
+				printf("INSTR %d e vera : %d\n",map[i].instr[0].type_flag, jobs[i].instr[0].type_flag);
 			}
 
 			/* Don't forget to free the mmapped memory
@@ -479,12 +488,9 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
 			/* Un-mmaping doesn't close the file, so we still need to do that.
 			 */
 			close(fd);
-			 printf("ora HO FINITO di scrivere\n");
+			 //printf("ora HO FINITO di scrivere\n");
 			/****************************************/
 			
-            for(int c = 0; c<jobCount; c++){
-                jobs[c].pState = NEW;
-            }
 			/*Job newJobs[jobCount];
 			for(int ii =0; ii< jobCount; ii++){
 				newJobs[ii] = jobs[ii];
@@ -514,6 +520,7 @@ int master(int quantum, char input[], char preempt_output[], char no_preempt_out
         count += (*job).instr[i].lenght;
     }
     (*job).totalLeght = count;
-    //printf("Lunghezza istruzioni del job %d è: %d\n",(*job).id,(*job).totalLeght);
+    
+    printf("Lunghezza istruzioni del job %d è: %d\n",(*job).id,(*job).totalLeght);
 
  }
